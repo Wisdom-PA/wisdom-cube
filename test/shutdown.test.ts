@@ -1,4 +1,5 @@
-import { type ChildProcess, spawn } from 'node:child_process';
+import { type ChildProcess, spawn, spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import type { AddressInfo } from 'node:net';
 import { createServer } from 'node:net';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -35,6 +36,18 @@ async function waitForHealthy(baseUrl: string, timeoutMs: number): Promise<void>
   throw new Error(`server did not become healthy within ${timeoutMs}ms`);
 }
 
+function ensureBuiltServer(): void {
+  if (existsSync(`${stackDir}/dist/server.js`)) return;
+  const result = spawnSync('pnpm', ['run', 'build'], {
+    cwd: stackDir,
+    encoding: 'utf8',
+    shell: true,
+  });
+  if (result.status !== 0) {
+    throw new Error(`pnpm run build failed:\n${result.stdout}\n${result.stderr}`);
+  }
+}
+
 describe('graceful shutdown', () => {
   it('close() drains in-flight requests (in-process)', async () => {
     const app = await buildTestApp();
@@ -58,18 +71,15 @@ describe('graceful shutdown', () => {
     });
 
     it('drains the in-flight request and exits 0 before any kill timeout', async () => {
+      ensureBuiltServer();
       const port = await getFreePort();
       const baseUrl = `http://127.0.0.1:${port}`;
 
-      // Prefer the built ESM entry so Windows/Node don't need TS strip-types,
-      // and OTEL init matches production start.
       child = spawn(process.execPath, ['dist/server.js'], {
         cwd: stackDir,
         env: {
           PATH: process.env.PATH,
           NODE_ENV: 'production',
-          // staging (not production): the drain test needs the delayMs
-          // test-support param, which is gated OFF in production.
           APP_ENV: 'staging',
           HOST: '127.0.0.1',
           PORT: String(port),
@@ -84,10 +94,8 @@ describe('graceful shutdown', () => {
       child.stderr?.on('data', (chunk: Buffer) => stderr.push(chunk.toString()));
       const exited = new Promise<number | null>((resolve) => child?.on('exit', (code) => resolve(code)));
 
-      await waitForHealthy(baseUrl, 30_000);
+      await waitForHealthy(baseUrl, 15_000);
 
-      // Bonus assertion while the real server is up: /docs is served in staging
-      // (the production-absence case is covered by test/docs.test.ts).
       expect((await fetch(`${baseUrl}/docs/json`)).status).toBe(200);
 
       const slow = fetch(`${baseUrl}/status`);
@@ -101,6 +109,6 @@ describe('graceful shutdown', () => {
 
       const exitCode = await exited;
       expect(exitCode, `server exited ${exitCode}; stderr:\n${stderr.join('')}`).toBe(0);
-    }, 20_000);
+    }, 45_000);
   });
 });
