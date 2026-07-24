@@ -12,14 +12,16 @@ describe('/docs gating', () => {
     expect(spec.statusCode).toBe(200);
     const body = spec.json();
     expect(body.openapi).toMatch(/^3\./);
-    expect(Object.keys(body.paths)).toEqual(expect.arrayContaining(['/health', '/items', '/items/{id}']));
+    expect(Object.keys(body.paths)).toEqual(
+      expect.arrayContaining(['/health', '/status', '/config', '/devices', '/profiles', '/routines', '/logs', '/chat'])
+    );
     await app.close();
   });
 
   it('documents the error envelope in the spec', async () => {
     const app = await buildTestApp();
     const spec = (await app.inject({ method: 'GET', url: '/docs/json' })).json();
-    const notFound = spec.paths['/items/{id}'].get.responses['404'];
+    const notFound = spec.paths['/profiles/{profileId}'].get.responses['404'];
     expect(notFound).toBeDefined();
     await app.close();
   });

@@ -7,14 +7,15 @@ import { buildTestApp } from './helpers.ts';
 describe('error envelope wire shape', () => {
   it('NOT_FOUND envelope is byte-exact', async () => {
     const app = await buildTestApp();
-    const id = '00000000-0000-4000-8000-000000000000';
     const res = await app.inject({
       method: 'GET',
-      url: `/items/${id}`,
+      url: '/profiles/unknown-profile-id',
       headers: { 'x-request-id': 'rid-fixed' },
     });
     expect(res.statusCode).toBe(404);
-    expect(res.body).toBe(`{"error":{"code":"NOT_FOUND","message":"Item ${id} not found","requestId":"rid-fixed"}}`);
+    expect(res.body).toBe(
+      '{"error":{"code":"NOT_FOUND","message":"Profile unknown-profile-id not found","requestId":"rid-fixed"}}'
+    );
     expect(() => errorEnvelopeSchema.parse(res.json())).not.toThrow();
     await app.close();
   });

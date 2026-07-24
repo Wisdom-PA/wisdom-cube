@@ -23,9 +23,9 @@ describe('security baseline', () => {
   it('rate limits with the envelope shape and a 429', async () => {
     const app = await buildTestApp({ RATE_LIMIT_MAX_PER_MINUTE: 3 });
     for (let i = 0; i < 3; i += 1) {
-      expect((await app.inject({ url: '/items' })).statusCode).toBe(200);
+      expect((await app.inject({ url: '/devices' })).statusCode).toBe(200);
     }
-    const limited = await app.inject({ url: '/items', headers: { 'x-request-id': 'rid-429' } });
+    const limited = await app.inject({ url: '/devices', headers: { 'x-request-id': 'rid-429' } });
     expect(limited.statusCode).toBe(429);
     const body = limited.json();
     expect(body.error.code).toBe('RATE_LIMITED');
@@ -45,9 +45,9 @@ describe('security baseline', () => {
     const app = await buildTestApp({ BODY_LIMIT_BYTES: 256 });
     const res = await app.inject({
       method: 'POST',
-      url: '/items',
+      url: '/profiles',
       headers: { ...authHeaders, 'x-request-id': 'rid-413' },
-      payload: { name: 'x'.repeat(500) },
+      payload: { preferredName: 'x'.repeat(500), role: 'adult' },
     });
     expect(res.statusCode).toBe(413);
     expect(res.json().error.code).toBe('PAYLOAD_TOO_LARGE');

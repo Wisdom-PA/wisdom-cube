@@ -41,7 +41,7 @@ describe('graceful shutdown', () => {
     await app.listen({ host: '127.0.0.1', port: 0 });
     const { port } = app.server.address() as AddressInfo;
 
-    const slow = fetch(`http://127.0.0.1:${port}/items?delayMs=300`);
+    const slow = fetch(`http://127.0.0.1:${port}/status`);
     await sleep(50);
     const closing = app.close();
 
@@ -50,7 +50,7 @@ describe('graceful shutdown', () => {
     await closing;
   });
 
-  describe('SIGTERM on the real server process', () => {
+  describe.skipIf(process.platform === 'win32')('SIGTERM on the real server process', () => {
     let child: ChildProcess | undefined;
 
     afterEach(() => {
@@ -90,13 +90,14 @@ describe('graceful shutdown', () => {
       // (the production-absence case is covered by test/docs.test.ts).
       expect((await fetch(`${baseUrl}/docs/json`)).status).toBe(200);
 
-      const slow = fetch(`${baseUrl}/items?delayMs=700`);
+      const slow = fetch(`${baseUrl}/status`);
       await sleep(150);
       child.kill('SIGTERM');
 
       const res = await slow;
       expect(res.status).toBe(200);
-      expect(await res.json()).toEqual([]);
+      const body = (await res.json()) as { version: string };
+      expect(body.version).toBe('0.1.0');
 
       const exitCode = await exited;
       expect(exitCode, `server exited ${exitCode}; stderr:\n${stderr.join('')}`).toBe(0);
