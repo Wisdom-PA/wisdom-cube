@@ -1,0 +1,7 @@
+{
+  "kind": "skill",
+  "name": "review-changes",
+  "description": "Use when the user asks to \"review my changes\", \"review the working tree\", \"review uncommitted code\", or invokes /review-changes, or when feature-dev hands off after implementation. Read-only analyst over the UNCOMMITTED working-tree changes (like pr-review, but nothing is committed yet), reporting findings tagged Blocker/Major/Minor/Nit and ending with a loop-control verdict on whether feature-dev should re-plan and fix. Writes nothing.",
+  "targets": ["claude", "cursor"],
+  "scope": ["all"]
+}

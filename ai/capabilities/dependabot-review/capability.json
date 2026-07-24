@@ -1,0 +1,7 @@
+{
+  "kind": "skill",
+  "name": "dependabot-review",
+  "description": "Use when the user asks to \"review dependabot PR\", \"review this bump\", \"audit deps\", \"check this bump\", or invokes /dependabot-review. Read-only analyst for dependabot/Renovate PRs that only touch package.json / pnpm-lock.yaml / poetry.lock. Surfaces blockers, smoke-test scopes, and adoption opportunities across four passes (enumerate, usage, lockfile-only, API delta). Makes no approval decisions and writes nothing — output is a report for the user.",
+  "targets": ["claude", "cursor"],
+  "scope": ["all"]
+}

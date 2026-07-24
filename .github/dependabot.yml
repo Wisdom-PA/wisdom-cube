@@ -1,0 +1,27 @@
+# Generated at init for this repo's stack selection.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    <<: &house-policy
+      schedule:
+        interval: "daily"
+      target-branch: "staging"
+      open-pull-requests-limit: 10
+      cooldown:
+        default-days: 14
+        semver-major-days: 30
+        semver-minor-days: 14
+        semver-patch-days: 7
+    groups: &minor-and-patch
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    <<: *house-policy
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    <<: *house-policy
+    groups: *minor-and-patch

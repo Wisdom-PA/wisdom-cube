@@ -1,0 +1,8 @@
+{
+  "kind": "agent",
+  "name": "code-reviewer",
+  "description": "Read-only, fresh-eyes code reviewer. Dispatch when you want an objective review of a diff, branch, or working tree in an isolated context — so the file-reading stays out of the main conversation. Detects the scope itself (commit range, uncommitted working tree, or dependency bump) and returns a severity-tagged findings report with a loop-control verdict. Does NOT edit, commit, comment, or give an approve/reject verdict.",
+  "targets": ["claude", "cursor"],
+  "scope": ["all"],
+  "readonly": true
+}

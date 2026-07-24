@@ -1,0 +1,37 @@
+# deps
+node_modules/
+.pnpm-store/
+.venv/
+__pycache__/
+*.py[cod]
+
+# builds
+dist/
+build/
+.next/
+out/
+storybook-static/
+*.tsbuildinfo
+
+# test artifacts
+coverage/
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+playwright-report/
+test-results/
+
+# env — .env.example is committed, real env files are not
+.env
+.env.*
+!.env.example
+
+# editor/os noise
+.DS_Store
+*.log
+.idea/
+
+# local scratch plans — not part of the audit trail
+docs/plans/

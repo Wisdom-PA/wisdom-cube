@@ -1,0 +1,7 @@
+{
+  "kind": "agent",
+  "name": "project-context",
+  "description": "Injects this repo's purpose, ideas, and repo-specific rules into the single-source AI config, then fans them into every agentic file. Interviews the operator using ai/context/questions.json, writes the answers into ai/shared/ (00-project.md, 05-features.md, 12-repo-rules.md), and runs `pnpm run ai:sync`. Use once after init to teach a fresh clone about itself. NOT readonly — it must write the source files. To revise later, use the update-project-context skill.",
+  "targets": ["claude", "cursor"],
+  "scope": ["all"]
+}

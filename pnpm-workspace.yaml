@@ -1,0 +1,14 @@
+# pnpm settings (single-package repo — no workspace members).
+# Dependency postinstall scripts we explicitly trust (pnpm blocks the rest).
+overrides:
+  brace-expansion: '>=2.1.2'
+  '@opentelemetry/propagator-jaeger': '>=2.9.0'
+  fast-uri: '>=3.1.4'
+  sharp: '>=0.35.0'
+allowBuilds:
+  '@parcel/watcher': true
+  '@swc/core': true
+  esbuild: true
+  lefthook: true
+  protobufjs: true
+  sharp: true

@@ -1,0 +1,36 @@
+﻿# --- Security (hard block) ---
+.env
+.env.*
+!.env.example
+**/*.pem
+**/*.key
+**/id_rsa
+**/credentials.json
+**/secrets.json
+**/service-account*.json
+secrets/
+
+# --- Dependencies & caches ---
+node_modules/
+.venv/
+__pycache__/
+.pnpm-store/
+
+# --- Build & test artefacts ---
+dist/
+build/
+.next/
+out/
+storybook-static/
+coverage/
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+playwright-report/
+test-results/
+*.tsbuildinfo
+
+# --- Local scratch ---
+docs/plans/

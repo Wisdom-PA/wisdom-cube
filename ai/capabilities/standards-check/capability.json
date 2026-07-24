@@ -1,0 +1,8 @@
+{
+  "kind": "agent",
+  "name": "standards-check",
+  "description": "Read-only reviewer that audits a diff or branch against THIS repo's standards (atomic tiers, i18n, layering, envelope parity, ops invariants) and reports findings for a human to act on. Complements — never replaces — generic PR review.",
+  "targets": ["claude", "cursor"],
+  "scope": ["all"],
+  "readonly": true
+}

@@ -1,0 +1,2 @@
+# Safe to read via @Files / Agent, but keep out of semantic search.
+# Add large fixtures / generated OpenAPI dumps here as they appear.

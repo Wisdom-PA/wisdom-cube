@@ -1,0 +1,7 @@
+{
+  "kind": "skill",
+  "name": "test-coverage-review-ts",
+  "description": "Use before merging a change to the TypeScript (Fastify) backend, or when asked \"does this PR have adequate tests?\". Read-only reviewer that judges whether a diff carries meaningful, behavior-asserting Vitest coverage against this repo's model (flat test/ dir, mockable repositories, mandatory ops-behavior tests, ≥90% gate). Reports a PASS / CHANGES-REQUESTED verdict with concrete gaps; never edits, stages, or runs the app.",
+  "targets": ["claude", "cursor"],
+  "scope": ["ts-backend"]
+}

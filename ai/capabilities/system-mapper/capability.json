@@ -1,0 +1,7 @@
+{
+  "kind": "agent",
+  "name": "system-mapper",
+  "description": "Deep-scans ONE slice of the codebase (a set of directories, or one end-to-end flow) and writes a single structured system-map doc for it under docs/system-map/. Built to be fanned out — dispatch one instance per subsystem to build or refresh the whole map. Audience is BOTH future AI agents (loadable context) and human developers. Read-only except for writing its own output doc; does NOT edit source, commit, or run tests.",
+  "targets": ["claude", "cursor"],
+  "scope": ["all"]
+}

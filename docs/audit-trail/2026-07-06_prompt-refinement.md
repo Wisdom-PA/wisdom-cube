@@ -1,0 +1,129 @@
+# 2026-07-06 — Prompt-engineering refinement of every AI-config source prompt
+
+**Date/time:** 2026-07-06
+
+A world-class prompt-engineering pass over all 28 editable source prompts in the
+single-source AI config (19 capability bodies + 9 shared rule files), to improve
+accuracy/results, reduce friction, make every user-facing response human-readable
+and well-presented, and cut token bloat where it didn't cost the first three.
+
+## Method (fan-out workflow)
+
+Ran a background Workflow: one prompt-engineer agent per source file (28 in
+parallel) each returning a structured proposal (issues, full rewrite, word delta,
+semantic-change flags, cross-refs), then a cross-consistency reviewer over all 28
+proposals. Every rewrite was vetted by hand before applying — nothing was applied
+blind. Workflow artifacts (not committed): scratchpad `prompt-review.mjs` + the
+run journal.
+
+## Outcome by file
+
+- **Shared files (`ai/shared/*.md`): conservative, as agreed.** 7 of 9 left
+  exactly as-is (the house standards are already tight). Two tiny edits only:
+  `05-features.md` (comment now points at `project-context`/`update-project-context`
+  as the populate/revise path) and `32-stack-next.md` (clarified the loading/error
+  "BOTH" vs the 404 `not-found.tsx` boundary — accuracy, no meaning change).
+- **Capabilities: 19 rewritten** for precision, friction, presentation, concision.
+  Biggest token trims on the heaviest prompts (dependabot-review, system-mapper)
+  without losing any load-bearing specific.
+
+## Consistency reconciliation (applied as canon across the analyst family)
+
+pr-review / review-changes / code-reviewer / dependabot-review / standards-check
+were converged on one house wording:
+
+- Suggested-fix framing: **"a fix would be…"** everywhere (dropped the mixed
+  "the requester could…").
+- Loop-control verdict string made **identical** in code-reviewer + review-changes
+  (+ standards-check) so `feature-dev`'s "either returns the same verdict" holds.
+- Severity scale (Blocker/Major/Minor/Nit) kept for correctness analysts;
+  deliberately NOT retrofitted onto the coverage reviewers (PASS ✅ /
+  CHANGES REQUESTED ❌ / NO COVERAGE NEEDED ⚪) or dependabot-review's
+  Must-fix/Should-fix/Smoke-test/Opportunity — those distinct vocabularies are
+  load-bearing.
+- Read-only/no-commit boilerplate collapsed to ONE opening statement + one Rules
+  reminder per file (was stated 2–3× in several).
+- `standards-check` verdict shares the wording but is explicitly noted as NOT part
+  of feature-dev's default loop (feature-dev wires review-changes/code-reviewer).
+
+## Presentation (the human-readability requirement)
+
+Every user-facing capability now specifies a scannable output: lead summary +
+per-severity counts, findings grouped under severity headings, gate results as
+pass/fail lines (not raw logs), and "no raw tool dumps / JSON to the user".
+Machine-consumed returns (code-reviewer's verdict line, system-mapper's
+dispatcher report) were deliberately kept terse — judged by who reads the output.
+
+## Cross-target + factual corrections caught during vetting
+
+- **dependabot-review**: `Explore` (a Claude-only built-in) → target-agnostic
+  "parallel subagents" — a real cross-target fix, since the capability also targets
+  Cursor, which can't resolve `Explore`.
+- **ship (high blast radius — verified against root package.json before applying):**
+  adopted the root `pnpm run <task>` invocation ONLY for the 6 scripts that are
+  actually `pnpm --recursive --if-present` (lint, format:check, typecheck, test,
+  build, i18n:check). REJECTED the proposal's implication that this covers
+  everything: **Python is not a pnpm member** (kept its separate `poetry run`
+  gate) and **build-storybook is frontend-only** (kept per-frontend). The
+  root-run is correct and more layout-robust (works hoisted + workspace); the
+  naive "single run covers all stacks" would have shipped green on an untested
+  Python backend.
+- **ai-audit**: added a halt-on-failure contract + an "already reconciled" no-op
+  path. Verified the one quoted tool string ("STILL out of sync after
+  regeneration") is the real `ai-audit.mjs` output; the success path keys off an
+  empty `git status`, not a fabricated message.
+- **new-endpoint auth default**: proposal's neutral "which operations require
+  auth" was corrected back to the house default confirmed in the `items`
+  reference — **writes protected, reads public** — with per-operation as the
+  override, not the lead question.
+- **register-context** internal consistency: since the rewritten
+  project-context/update-project-context now DERIVE targets from the manifest's
+  `targets` map, register-context was updated to say "add the bucket to the
+  `targets` map" rather than "the interviewers hardcode three targets."
+
+## Files updated
+
+- Source: 19 × `ai/capabilities/*/body.md`; `ai/shared/05-features.md`,
+  `ai/shared/32-stack-next.md`.
+- Generated by `pnpm run ai:sync` (25 files): `AGENTS.md`, all affected
+  `.claude/skills|agents|commands/*`, `.cursor/rules/next-frontend.mdc`.
+
+## Side effects considered
+
+- **Only source was hand-edited**; `ai:sync` regenerated the outputs. The
+  `ai-sync-check.sh` PostToolUse hook fired on every `ai/` write (expected);
+  resolved by one `ai:sync` at the end. No `.claude/`/`.cursor/` hand-edits, so
+  `protect-generated.sh` + `ai-config-drift` stay green.
+- **Both drift gates pass**: `ai-build --check` (27 in sync), `ai-audit --check`
+  (all capabilities + shared materialized in claude+cursor).
+- **Final quality sweep clean**: no STAMP/frontmatter leaked into any source body;
+  no company/personal/origin references; all cross-referenced capability names
+  resolve; every user-facing capability carries a presentation/report section.
+- **Contracts preserved**: read-only analysts stay read-only; commands keep their
+  triggers; the feature-dev loop verdict is byte-stable across the two
+  dispatchable reviewers; coverage/severity vocabularies unchanged where they were
+  intentional.
+
+## Issues spotted during implementation
+
+- The Workflow `args` payload arrived as a JSON string (not an object) twice,
+  failing `args.files`. Fixed by making the script parse-tolerant with a hardcoded
+  file-list fallback — worth remembering for future workflows.
+- Two rewrites made verifiable factual claims that were WRONG (ship's root-run
+  coverage; new-endpoint's auth default). Both were caught by the consistency
+  pass's verify-before-apply flags and corrected — the reason nothing was applied
+  blind.
+
+## Deployment Checklist
+
+AI-config / prompt-content change to the skeleton repo — no runtime service is
+deployed. No env vars, migrations, or backfills.
+
+- [ ] Confirm `ai-config-drift` CI is green on the PR (same
+      `ai-build.mjs --check` + `ai-audit.mjs --check` used locally).
+- [ ] Optional: exercise one refined analyst (e.g. `/pr-review` or
+      `/review-changes`) and one scaffolder (`/new-endpoint`) in a clone to sanity
+      check the new output formatting reads well.
+- [ ] Decide the still-open follow-ups from earlier today (CLAUDE.md notes for the
+      context trio; README post-init `project-context` step) — unaffected by this
+      change but still pending.

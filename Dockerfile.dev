@@ -1,0 +1,16 @@
+# syntax=docker/dockerfile:1
+# Dev image for the TypeScript (Fastify) backend — hot-reload, full deps.
+# Source is bind-mounted by docker-compose, so this image only needs the deps.
+# The pinned digest matches the production Dockerfile (Dependabot bumps both).
+FROM node:24-alpine@sha256:a0b9bf06e4e6193cf7a0f58816cc935ff8c2a908f81e6f1a95432d679c54fbfd
+WORKDIR /app
+RUN corepack enable
+# Install against the manifest first, so `docker compose build` is cached until
+# dependencies change; app source arrives via the compose bind-mount. No
+# --frozen-lockfile: a workspace member has no local lockfile (single root lock).
+COPY package.json* pnpm-lock.yaml* pnpm-workspace.yaml* ./
+RUN pnpm install --ignore-scripts
+COPY . .
+EXPOSE 4000
+# `pnpm dev` = node --watch; the bind-mount + --watch give hot reload.
+CMD ["pnpm", "run", "dev"]

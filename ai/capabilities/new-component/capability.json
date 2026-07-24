@@ -1,0 +1,7 @@
+{
+  "kind": "command",
+  "name": "new-component",
+  "description": "Scaffold a frontend component with the mandatory folder shape (component/test/stories/stories-test/hooks, optional skeleton) in the correct atomic tier.",
+  "targets": ["claude", "cursor"],
+  "scope": ["next-frontend"]
+}

@@ -1,0 +1,7 @@
+# CODEOWNERS — optional teeth. The house rulesets set require_code_owner_review: false,
+# so these entries only drive review *suggestions* today. Uncomment/extend if a repo
+# flips require_code_owner_review on.
+#
+# *             @your-org/platform-team
+# /ai/          @your-org/ai-tooling
+# /.github/     @your-org/platform-team

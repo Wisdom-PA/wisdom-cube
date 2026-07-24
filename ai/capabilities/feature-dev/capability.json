@@ -1,0 +1,7 @@
+{
+  "kind": "skill",
+  "name": "feature-dev",
+  "description": "Use when starting any feature, enhancement, bugfix, or behaviour change in this repo, or when the user invokes /feature-dev. Drives the work end to end: plan mode to design, a written goal + TodoWrite checklist, test-first implementation following this repo's conventions, a real verification pass (pnpm/poetry gates via /ship), then hands off to review-changes and loops on fixes until the review reports no Blocker/Major issues.",
+  "targets": ["claude", "cursor"],
+  "scope": ["all"]
+}

@@ -1,0 +1,14 @@
+# Generated at init for this repo's stack selection.
+# Dev stack: `docker compose up --build`. Native equivalent: `pnpm run dev`.
+# Ports — frontend 3000, TS backend 4000, Python backend 8000, Postgres 5452→5432.
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: cube-api
+    ports:
+      - '4000:4000'
+    volumes:
+      - .:/app
+      - /app/node_modules

@@ -1,0 +1,7 @@
+{
+  "kind": "skill",
+  "name": "test-coverage-review-fe",
+  "description": "Use before merging a change to the Next.js frontend, or when asked \"does this component have adequate tests?\". Read-only reviewer that judges whether a diff carries meaningful tests against this repo's model (colocated *.test.tsx, stories-as-fixtures via composeStories, RTL user-facing queries, Playwright e2e/, ≥90% gate). Reports a PASS / CHANGES-REQUESTED verdict with concrete gaps; never edits, stages, or runs the app.",
+  "targets": ["claude", "cursor"],
+  "scope": ["next-frontend"]
+}

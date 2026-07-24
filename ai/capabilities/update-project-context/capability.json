@@ -1,0 +1,7 @@
+{
+  "kind": "skill",
+  "name": "update-project-context",
+  "description": "Use to revise this repo's injected purpose, ideas, feature map, or repo-specific rules after they were first set (or to fill in what project-context left blank). Reads the current ai/shared/ content, re-asks only what's changing, writes the source, and re-runs `pnpm run ai:sync` so every agentic file updates. Triggers: 'update the project context', 'change what the repo is for', 'add a feature to the map', 'add a repo rule'.",
+  "targets": ["claude", "cursor"],
+  "scope": ["all"]
+}

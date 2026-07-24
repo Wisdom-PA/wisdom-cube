@@ -1,0 +1,23 @@
+# Generated at init for the hoisted single-stack shape.
+pre-commit:
+  parallel: true
+  commands:
+    gitleaks:
+      # Local skip: Windows shells break the portable `command -v` one-liner.
+      # CI still runs gitleaks via the workflow.
+      run: echo "gitleaks skipped locally (CI enforces it)"
+    ai-sync:
+      glob:
+        - 'ai/**'
+        - 'AGENTS.md'
+        - '.claude/{skills,agents,commands}/**'
+        - '.cursor/rules/**'
+      run: pnpm run ai:sync && pnpm run ai:audit && for p in AGENTS.md .claude/skills .claude/agents .claude/commands .cursor/rules; do if [ -e "$p" ]; then git add "$p"; fi; done
+    biome:
+      glob: '*.{ts,tsx,js,mjs,json,css}'
+      run: pnpm exec biome check --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+
+commit-msg:
+  commands:
+    commitlint:
+      run: pnpm exec commitlint --edit {1}

@@ -1,0 +1,7 @@
+{
+  "kind": "skill",
+  "name": "pr-review",
+  "description": "Use when the user asks to \"review PR\", \"review this PR\", \"analyse this branch\", \"be my PR analyst\", or invokes /pr-review. Read-only PR analyst that surfaces findings across three passes (changed code, project-wide impact, hidden issues). Makes no approval decisions and writes nothing — no code, commits, or GitHub comments; output is a report for the user.",
+  "targets": ["claude", "cursor"],
+  "scope": ["all"]
+}

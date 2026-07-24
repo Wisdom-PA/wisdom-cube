@@ -1,0 +1,7 @@
+{
+  "kind": "skill",
+  "name": "register-context",
+  "description": "Use right after authoring a NEW skill, agent, or repo rule that needs repo-specific context gathered at init time. Adds that capability's questions to ai/context/questions.json so the project-context agent asks them on the next fresh clone. Triggers: 'register context for <capability>', 'this new skill needs init context', 'wire my new agent into the context interview'.",
+  "targets": ["claude", "cursor"],
+  "scope": ["all"]
+}

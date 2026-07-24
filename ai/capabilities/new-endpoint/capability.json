@@ -1,0 +1,7 @@
+{
+  "kind": "command",
+  "name": "new-endpoint",
+  "description": "Scaffold a stack-aware backend endpoint (route → service → repository) with schema validation, typed errors, and tests, following this repo's backend-api standard.",
+  "targets": ["claude", "cursor"],
+  "scope": ["ts-backend", "py-backend"]
+}

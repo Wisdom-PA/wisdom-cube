@@ -1,0 +1,7 @@
+{
+  "kind": "command",
+  "name": "ship",
+  "description": "Run the full quality gate: lint + format-check + typecheck + tests (≥90% coverage) + build for every stack in this repo, and report what blocks shipping.",
+  "targets": ["claude", "cursor"],
+  "scope": ["all"]
+}

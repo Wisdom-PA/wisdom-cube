@@ -1,0 +1,53 @@
+{
+  "$comment": "Questions manifest for the project-context injection flow. Data, not prose: the `project-context` agent and `update-project-context` skill READ this to know what to ask; `register-context` WRITES to it when a new capability needs init-time context. Never hand-edit the generated .claude/.cursor files to change interview behaviour — change this manifest. This file is NOT consumed by ai-build.mjs (it only reads ai/shared + ai/capabilities), so it never affects the drift gate.",
+  "version": 1,
+  "targets": {
+    "purpose": {
+      "file": "ai/shared/00-project.md",
+      "note": "The repo's purpose paragraph. Written under the '# cube' heading, replacing the 'generated from the company skeleton' boilerplate intro is NOT allowed — append a 'What this repo is for' paragraph instead so the standards intro survives."
+    },
+    "features": {
+      "file": "ai/shared/05-features.md",
+      "note": "The service description paragraph and the feature-map list. Replaces the FILL-IN placeholder blocks."
+    },
+    "rules": {
+      "file": "ai/shared/12-repo-rules.md",
+      "note": "Repo-specific rules that are NOT house standards (those live in 10-conventions.md and the stack files). Appended as bullet points under the existing headings."
+    }
+  },
+  "seed": [
+    {
+      "id": "purpose-paragraph",
+      "target": "purpose",
+      "prompt": "In one short paragraph: what is this service/repo for, and who uses it? (Agents read this to understand intent, not just code.)",
+      "required": true
+    },
+    {
+      "id": "service-description",
+      "target": "features",
+      "prompt": "Describe what this service does in 2-4 sentences for the '# What this service does' section.",
+      "required": true
+    },
+    {
+      "id": "feature-map",
+      "target": "features",
+      "prompt": "List the current features/domains, one per line, as 'feature — one-line purpose — key entry points (paths)'. Leave blank if there are none yet.",
+      "required": false,
+      "list": true
+    },
+    {
+      "id": "domain-ideas",
+      "target": "purpose",
+      "prompt": "Any product ideas, roadmap intent, or 'north star' context that should guide agents working here? (Optional — kept as a short 'Direction' note.)",
+      "required": false
+    },
+    {
+      "id": "repo-rules",
+      "target": "rules",
+      "prompt": "Any repo-SPECIFIC rules that are NOT already house standards? (e.g. 'all money is stored in minor units', 'never call the legacy /v1 API', domain invariants). One per line. House-wide conventions do NOT belong here.",
+      "required": false,
+      "list": true
+    }
+  ],
+  "capabilities": {}
+}

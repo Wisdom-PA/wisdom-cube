@@ -1,0 +1,7 @@
+{
+  "kind": "command",
+  "name": "ai-audit",
+  "description": "Reconcile the generated AI config (AGENTS.md, .claude capabilities, .cursor rules) with its single source under ai/ — write mode materializes anything missing or stale.",
+  "targets": ["claude", "cursor"],
+  "scope": ["all"]
+}

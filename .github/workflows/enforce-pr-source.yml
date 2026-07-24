@@ -1,0 +1,26 @@
+# Required check on PRs targeting main: the source branch MUST be `staging`.
+# Rulesets have no native "PR source = X" rule, so this check is that rule.
+# The job name `enforce-pr-source` is referenced by .github/rulesets/main.json.
+name: enforce-pr-source
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  enforce-pr-source:
+    name: enforce-pr-source
+    runs-on: ubuntu-latest
+    steps:
+      - name: PR into main must come from staging
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if [ "$HEAD_REF" != "staging" ]; then
+            echo "::error::PRs into main must come from 'staging' (got '$HEAD_REF'). Promotion flow: anywhere -> staging -> main."
+            exit 1
+          fi
+          echo "PR source is staging — OK."

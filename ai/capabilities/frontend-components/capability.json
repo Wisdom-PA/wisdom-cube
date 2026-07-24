@@ -1,0 +1,7 @@
+{
+  "kind": "skill",
+  "name": "frontend-components",
+  "description": "Use when creating or reviewing frontend components in this repo: atomic tiers, the mandatory component folder shape, i18n (EN/CY, no hardcoded strings), RHF+Zod forms, a11y, server-first Next.js patterns.",
+  "targets": ["claude", "cursor"],
+  "scope": ["next-frontend"]
+}

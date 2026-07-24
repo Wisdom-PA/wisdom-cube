@@ -1,0 +1,7 @@
+{
+  "kind": "skill",
+  "name": "test-coverage-review-py",
+  "description": "Use before merging a change to the Python (FastAPI) backend, or when asked \"does this PR have adequate tests?\". Read-only reviewer that judges whether a diff carries meaningful, behavior-asserting pytest coverage against this repo's model (flat tests/ dir + conftest, Protocol-mockable repositories, mandatory ops-behavior tests, --cov-fail-under=90). Reports a PASS / CHANGES-REQUESTED verdict with concrete gaps; never edits, stages, or runs the app.",
+  "targets": ["claude", "cursor"],
+  "scope": ["py-backend"]
+}

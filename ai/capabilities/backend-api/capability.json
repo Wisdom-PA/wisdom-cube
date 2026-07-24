@@ -1,0 +1,7 @@
+{
+  "kind": "skill",
+  "name": "backend-api",
+  "description": "Use when creating or reviewing backend API code in this repo: route→service→repository layering, schema-first validation and OpenAPI, typed error envelope, auth boundary, and the mandatory ops routes.",
+  "targets": ["claude", "cursor"],
+  "scope": ["ts-backend", "py-backend"]
+}

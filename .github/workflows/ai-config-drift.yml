@@ -1,0 +1,25 @@
+# Required check (see .github/rulesets/): the generated AI config must match
+# its single source under ai/. Catches hand-edits to generated files and
+# `git commit --no-verify` bypasses of the lefthook regen.
+name: ai-config-drift
+
+on:
+  pull_request:
+  push:
+    branches: [main, staging]
+
+permissions:
+  contents: read
+
+jobs:
+  ai-config-drift:
+    name: ai-config-drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      # Node built-ins only — no install needed before the check.
+      - run: node ai/tools/ai-build.mjs --check
+      - run: node ai/tools/ai-audit.mjs --check

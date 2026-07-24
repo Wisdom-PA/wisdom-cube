@@ -1,0 +1,20 @@
+# CHANGELOG + release automation, riding the conventional commits that
+# commitlint already enforces. Runs on pushes to main; opens/updates a release
+# PR whose merge tags a release and updates CHANGELOG.md.
+name: release-please
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          release-type: simple
