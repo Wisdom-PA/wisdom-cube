@@ -7,6 +7,7 @@ export interface LogRepository {
   appendInternetCall(call: LogInternetCall): Promise<void>;
   query(params: LogQuery): Promise<LogEntry[]>;
   getChain(chainId: string): Promise<LogEntry | undefined>;
+  purgeOlderThan(isoCutoff: string): Promise<number>;
 }
 
 export class InMemoryLogRepository implements LogRepository {
@@ -73,5 +74,37 @@ export class InMemoryLogRepository implements LogRepository {
       actions: this.actions.filter((a) => a.chainId === chain.chainId),
       internetCalls: this.internetCalls.filter((c) => c.chainId === chain.chainId),
     }));
+  }
+
+  async purgeOlderThan(isoCutoff: string): Promise<number> {
+    const toRemove: string[] = [];
+    for (const chain of this.chains.values()) {
+      if (chain.chainStartTs < isoCutoff) {
+        toRemove.push(chain.chainId);
+      }
+    }
+
+    for (const chainId of toRemove) {
+      this.chains.delete(chainId);
+    }
+
+    const removeIds = new Set(toRemove);
+    for (let i = this.intents.length - 1; i >= 0; i--) {
+      if (removeIds.has(this.intents[i]?.chainId ?? '')) {
+        this.intents.splice(i, 1);
+      }
+    }
+    for (let i = this.actions.length - 1; i >= 0; i--) {
+      if (removeIds.has(this.actions[i]?.chainId ?? '')) {
+        this.actions.splice(i, 1);
+      }
+    }
+    for (let i = this.internetCalls.length - 1; i >= 0; i--) {
+      if (removeIds.has(this.internetCalls[i]?.chainId ?? '')) {
+        this.internetCalls.splice(i, 1);
+      }
+    }
+
+    return toRemove.length;
   }
 }

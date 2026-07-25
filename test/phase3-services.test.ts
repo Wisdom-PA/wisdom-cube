@@ -176,6 +176,22 @@ describe('DeviceService capability methods', () => {
     const service = await makeService();
     await expect(service.requireCapability('nope', 'on_off')).rejects.toThrow('not found');
   });
+
+  it('applyState merges state when reachable', async () => {
+    const service = await makeService();
+    const updated = await service.applyState('light-1', { on: true, brightness: 0.5 });
+    expect(updated.state).toMatchObject({ on: true, brightness: 0.5 });
+  });
+
+  it('applyState throws when device is unreachable', async () => {
+    const service = await makeService();
+    await expect(service.applyState('plug-1', { on: true })).rejects.toThrow(/unreachable/i);
+  });
+
+  it('setState returns undefined for missing device', async () => {
+    const repo = new InMemoryDeviceRepository();
+    expect(await repo.setState('missing', { on: true })).toBeUndefined();
+  });
 });
 
 describe('ProfileService permission helpers', () => {

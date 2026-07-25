@@ -18,17 +18,22 @@ import { registerChatRoutes } from './routes/chat.ts';
 import { registerConfigRoutes } from './routes/config.ts';
 import { registerDeviceRoutes } from './routes/devices.ts';
 import { registerHealthRoutes } from './routes/health.ts';
+import { registerInternetRoutes } from './routes/internet.ts';
 import { registerLogRoutes } from './routes/logs.ts';
 import { registerProfileRoutes } from './routes/profiles.ts';
 import { registerRoutineRoutes } from './routes/routines.ts';
 import { registerStatusRoutes } from './routes/status.ts';
+import type { Device } from './schemas/device.ts';
 import { BackupService } from './services/backup-service.ts';
 import { ChatService } from './services/chat-service.ts';
+import { MockCloudLlmClient } from './services/cloud-llm-client.ts';
 import { ConfigService } from './services/config-service.ts';
 import { DeviceService } from './services/device-service.ts';
+import { InternetPermissionService } from './services/internet-permission-service.ts';
 import { LogService } from './services/log-service.ts';
 import { PrivacyService } from './services/privacy-service.ts';
 import { ProfileService } from './services/profile-service.ts';
+import { RoutineEngineService } from './services/routine-engine-service.ts';
 import { RoutineService } from './services/routine-service.ts';
 import { StatusService } from './services/status-service.ts';
 
@@ -42,9 +47,16 @@ export interface BuildAppOptions {
   env: Env;
   logger?: boolean;
   beforeReady?: (app: FastifyInstance) => void;
+  /** Seed devices into the in-memory store (tests / local demos). */
+  seedDevices?: Device[];
 }
 
-export async function buildApp({ env, logger = true, beforeReady }: BuildAppOptions): Promise<FastifyInstance> {
+export async function buildApp({
+  env,
+  logger = true,
+  beforeReady,
+  seedDevices,
+}: BuildAppOptions): Promise<FastifyInstance> {
   const app = fastify({
     logger: logger
       ? {
@@ -97,6 +109,12 @@ export async function buildApp({ env, logger = true, beforeReady }: BuildAppOpti
   const routineRepo = new InMemoryRoutineRepository();
   const logRepo = new InMemoryLogRepository();
 
+  if (seedDevices) {
+    for (const device of seedDevices) {
+      await deviceRepo.upsert(device);
+    }
+  }
+
   const configService = new ConfigService(configRepo);
   const deviceService = new DeviceService(deviceRepo);
   const profileService = new ProfileService(profileRepo);
@@ -104,20 +122,22 @@ export async function buildApp({ env, logger = true, beforeReady }: BuildAppOpti
   const logService = new LogService(logRepo);
   const statusService = new StatusService(configRepo, deviceRepo, profileRepo);
   const privacyService = new PrivacyService(configRepo, profileRepo);
+  const internetPermission = new InternetPermissionService(configRepo, profileRepo);
+  const cloudLlm = new MockCloudLlmClient();
+  const routineEngine = new RoutineEngineService(routineService, deviceService, logService);
   const backupService = new BackupService();
-  const chatService = new ChatService(configRepo);
-
-  void privacyService;
+  const chatService = new ChatService(logService, privacyService, profileService, internetPermission, cloudLlm);
 
   registerHealthRoutes(app);
   registerStatusRoutes(app, statusService);
   registerConfigRoutes(app, configService);
   registerDeviceRoutes(app, deviceService);
   registerProfileRoutes(app, profileService);
-  registerRoutineRoutes(app, routineService);
+  registerRoutineRoutes(app, routineService, routineEngine);
   registerLogRoutes(app, logService);
   registerBackupRoutes(app, backupService);
   registerChatRoutes(app, chatService);
+  registerInternetRoutes(app, internetPermission);
 
   beforeReady?.(app);
 
