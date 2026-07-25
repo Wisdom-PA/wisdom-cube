@@ -4,6 +4,7 @@ import type { CubeConfig, PatchConfig } from '../schemas/config.ts';
 export interface ConfigRepository {
   get(): Promise<CubeConfig>;
   patch(updates: PatchConfig): Promise<CubeConfig>;
+  replace(config: CubeConfig): Promise<CubeConfig>;
 }
 
 export class InMemoryConfigRepository implements ConfigRepository {
@@ -28,6 +29,11 @@ export class InMemoryConfigRepository implements ConfigRepository {
     if (updates.locale !== undefined) this.config.locale = updates.locale;
     if (updates.wakeWord !== undefined) this.config.wakeWord = updates.wakeWord;
     if (updates.voiceVerbosity !== undefined) this.config.voiceVerbosity = updates.voiceVerbosity;
+    return { ...this.config };
+  }
+
+  async replace(config: CubeConfig): Promise<CubeConfig> {
+    this.config = { ...config };
     return { ...this.config };
   }
 }

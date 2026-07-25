@@ -125,7 +125,7 @@ export async function buildApp({
   const internetPermission = new InternetPermissionService(configRepo, profileRepo);
   const cloudLlm = new MockCloudLlmClient();
   const routineEngine = new RoutineEngineService(routineService, deviceService, logService);
-  const backupService = new BackupService();
+  const backupService = new BackupService(configRepo, deviceRepo, profileRepo, routineRepo, logRepo);
   const chatService = new ChatService(logService, privacyService, profileService, internetPermission, cloudLlm);
 
   registerHealthRoutes(app);

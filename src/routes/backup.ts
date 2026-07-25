@@ -1,7 +1,13 @@
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
+import { z } from 'zod';
 import { errorEnvelopeSchema } from '../errors.ts';
-import { backupStatusSchema, restoreRequestSchema, restoreResultSchema } from '../schemas/backup.ts';
+import {
+  backupDocumentSchema,
+  backupStatusSchema,
+  restoreRequestSchema,
+  restoreResultSchema,
+} from '../schemas/backup.ts';
 import type { BackupService } from '../services/backup-service.ts';
 
 export function registerBackupRoutes(app: FastifyInstance, service: BackupService): void {
@@ -33,6 +39,24 @@ export function registerBackupRoutes(app: FastifyInstance, service: BackupServic
     async () => service.triggerBackup()
   );
 
+  routes.get(
+    '/backup/:backupId',
+    {
+      preHandler: [app.authenticate],
+      schema: {
+        tags: ['backup'],
+        security: [{ bearerAuth: [] }],
+        params: z.object({ backupId: z.string().min(1) }),
+        response: {
+          200: backupDocumentSchema,
+          401: errorEnvelopeSchema,
+          404: errorEnvelopeSchema,
+        },
+      },
+    },
+    async (request) => service.getPayload(request.params.backupId)
+  );
+
   routes.post(
     '/backup/restore',
     {
@@ -45,6 +69,7 @@ export function registerBackupRoutes(app: FastifyInstance, service: BackupServic
           200: restoreResultSchema,
           400: errorEnvelopeSchema,
           401: errorEnvelopeSchema,
+          404: errorEnvelopeSchema,
         },
       },
     },

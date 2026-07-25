@@ -28,9 +28,10 @@ HTTP contract aligned with the app either way.
 
 ## Feature map
 
-- api gateway — health, metrics, docs, items sample CRUD — `src/app.ts`, `src/routes/`
-- _(pending)_ cube contract — status, devices, profiles, routines, logs, backup — TBD
-- _(pending)_ voice / device / privacy — on-device services — TBD
+- api gateway — health, metrics, docs — `src/app.ts`, `src/routes/`
+- cube contract — status, config, devices, profiles, routines, logs, chat, internet — `src/routes/`
+- backup/restore — in-memory versioned backup, checksums, dry-run + restore modes — `src/services/backup-service.ts`, `src/routes/backup.ts`
+- _(pending)_ voice / device / privacy — on-device pipelines — TBD
 
 ---
 
