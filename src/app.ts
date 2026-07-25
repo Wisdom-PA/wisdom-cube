@@ -8,10 +8,28 @@ import { type Authenticate, buildAuthenticate } from './plugins/auth.ts';
 import { registerDocs } from './plugins/docs.ts';
 import { registerErrorHandling } from './plugins/error-handler.ts';
 import { registerMetrics } from './plugins/metrics.ts';
-import { InMemoryItemsRepository } from './repositories/items-repo.ts';
+import { InMemoryConfigRepository } from './repositories/config-repo.ts';
+import { InMemoryDeviceRepository } from './repositories/device-repo.ts';
+import { InMemoryLogRepository } from './repositories/log-repo.ts';
+import { InMemoryProfileRepository } from './repositories/profile-repo.ts';
+import { InMemoryRoutineRepository } from './repositories/routine-repo.ts';
+import { registerBackupRoutes } from './routes/backup.ts';
+import { registerChatRoutes } from './routes/chat.ts';
+import { registerConfigRoutes } from './routes/config.ts';
+import { registerDeviceRoutes } from './routes/devices.ts';
 import { registerHealthRoutes } from './routes/health.ts';
-import { registerItemsRoutes } from './routes/items.ts';
-import { ItemsService } from './services/items-service.ts';
+import { registerLogRoutes } from './routes/logs.ts';
+import { registerProfileRoutes } from './routes/profiles.ts';
+import { registerRoutineRoutes } from './routes/routines.ts';
+import { registerStatusRoutes } from './routes/status.ts';
+import { BackupService } from './services/backup-service.ts';
+import { ChatService } from './services/chat-service.ts';
+import { ConfigService } from './services/config-service.ts';
+import { DeviceService } from './services/device-service.ts';
+import { LogService } from './services/log-service.ts';
+import { ProfileService } from './services/profile-service.ts';
+import { RoutineService } from './services/routine-service.ts';
+import { StatusService } from './services/status-service.ts';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -21,9 +39,7 @@ declare module 'fastify' {
 
 export interface BuildAppOptions {
   env: Env;
-  /** Structured pino logging (off in unit tests). */
   logger?: boolean;
-  /** Test seam: register extra routes/plugins before the app is finalized. */
   beforeReady?: (app: FastifyInstance) => void;
 }
 
@@ -35,26 +51,14 @@ export async function buildApp({ env, logger = true, beforeReady }: BuildAppOpti
           redact: ['req.headers.authorization'],
         }
       : false,
-    // Correlation id per request: honor an incoming x-request-id, else mint one.
-    // It is echoed on every response and carried in the error envelope.
     requestIdHeader: 'x-request-id',
     genReqId: () => randomUUID(),
     disableRequestLogging: env.NODE_ENV === 'test',
-    // Graceful drain: fastify's default ('idle') falls through to
-    // closeAllConnections() on close, destroying in-flight requests. With
-    // `false`, Node ≥19 server.close() reaps idle keep-alive sockets itself and
-    // lets active requests finish — exactly the SIGTERM drain we want.
     forceCloseConnections: false,
-    // Seeded edge limits (see .env.example): max body size and a server-side
-    // cap on how long a request may take end-to-end.
     bodyLimit: env.BODY_LIMIT_BYTES,
     requestTimeout: env.REQUEST_TIMEOUT_MS,
   });
 
-  // Node only reaps idle keep-alive sockets when their keepAliveTimeout fires
-  // (fastify's default is 72s), which would stall close() long past ECS
-  // stopTimeout. While draining, nudge idle connections closed so close()
-  // resolves as soon as in-flight requests finish.
   let idleReaper: NodeJS.Timeout | undefined;
   app.addHook('preClose', async () => {
     idleReaper = setInterval(() => app.server.closeIdleConnections(), 250);
@@ -69,13 +73,8 @@ export async function buildApp({ env, logger = true, beforeReady }: BuildAppOpti
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
 
-  // Security headers. CSP is enabled only in production: swagger-ui's inline
-  // scripts (the /docs UI, absent in prod) would violate it.
   await app.register(helmet, { contentSecurityPolicy: env.APP_ENV === 'production' });
 
-  // Seeded rate limit; /health opts out (route config) so ALB health checks
-  // are never throttled. The 429 envelope is shaped by the error handler —
-  // the single owner of the wire shape.
   await app.register(rateLimit, {
     max: env.RATE_LIMIT_MAX_PER_MINUTE,
     timeWindow: '1 minute',
@@ -89,13 +88,32 @@ export async function buildApp({ env, logger = true, beforeReady }: BuildAppOpti
 
   registerErrorHandling(app);
   registerMetrics(app);
-  // Swagger must register before routes so it can collect their schemas.
   await registerDocs(app, env);
 
-  const repo = new InMemoryItemsRepository();
-  const service = new ItemsService(repo);
+  const configRepo = new InMemoryConfigRepository();
+  const deviceRepo = new InMemoryDeviceRepository();
+  const profileRepo = new InMemoryProfileRepository();
+  const routineRepo = new InMemoryRoutineRepository();
+  const logRepo = new InMemoryLogRepository();
+
+  const configService = new ConfigService(configRepo);
+  const deviceService = new DeviceService(deviceRepo);
+  const profileService = new ProfileService(profileRepo);
+  const routineService = new RoutineService(routineRepo);
+  const logService = new LogService(logRepo);
+  const statusService = new StatusService(configRepo, deviceRepo, profileRepo);
+  const backupService = new BackupService();
+  const chatService = new ChatService(configRepo);
+
   registerHealthRoutes(app);
-  registerItemsRoutes(app, service, { allowDelay: env.APP_ENV !== 'production' });
+  registerStatusRoutes(app, statusService);
+  registerConfigRoutes(app, configService);
+  registerDeviceRoutes(app, deviceService);
+  registerProfileRoutes(app, profileService);
+  registerRoutineRoutes(app, routineService);
+  registerLogRoutes(app, logService);
+  registerBackupRoutes(app, backupService);
+  registerChatRoutes(app, chatService);
 
   beforeReady?.(app);
 

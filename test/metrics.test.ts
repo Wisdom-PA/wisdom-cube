@@ -35,9 +35,9 @@ describe('GET /metrics', () => {
 
   it('counts error responses by status code', async () => {
     const app = await buildTestApp();
-    await app.inject({ method: 'GET', url: '/items/not-a-uuid' });
+    await app.inject({ method: 'GET', url: '/profiles/nonexistent' });
     const res = await app.inject({ method: 'GET', url: '/metrics' });
-    expect(res.body).toContain('status_code="400"');
+    expect(res.body).toContain('status_code="404"');
     await app.close();
   });
 });

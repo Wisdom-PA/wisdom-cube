@@ -17,8 +17,9 @@ export async function registerDocs(app: FastifyInstance, env: Env): Promise<void
     openapi: {
       openapi: '3.1.0',
       info: {
-        title: env.OTEL_SERVICE_NAME,
+        title: 'Wisdom Cube API',
         version: '0.1.0',
+        description: 'On-device home assistant API — cube↔app contract',
       },
       components: {
         securitySchemes: {

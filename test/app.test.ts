@@ -16,7 +16,7 @@ describe('buildApp', () => {
     const app = await buildApp({ env: testEnv(), logger: false });
     const res = await app.inject({
       method: 'POST',
-      url: '/items',
+      url: '/profiles',
       headers: { authorization: 'Bearer test-api-token-1234', 'content-type': 'application/json' },
       payload: '"not an object"',
     });
