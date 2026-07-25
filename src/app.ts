@@ -27,6 +27,7 @@ import { ChatService } from './services/chat-service.ts';
 import { ConfigService } from './services/config-service.ts';
 import { DeviceService } from './services/device-service.ts';
 import { LogService } from './services/log-service.ts';
+import { PrivacyService } from './services/privacy-service.ts';
 import { ProfileService } from './services/profile-service.ts';
 import { RoutineService } from './services/routine-service.ts';
 import { StatusService } from './services/status-service.ts';
@@ -102,8 +103,11 @@ export async function buildApp({ env, logger = true, beforeReady }: BuildAppOpti
   const routineService = new RoutineService(routineRepo);
   const logService = new LogService(logRepo);
   const statusService = new StatusService(configRepo, deviceRepo, profileRepo);
+  const privacyService = new PrivacyService(configRepo, profileRepo);
   const backupService = new BackupService();
   const chatService = new ChatService(configRepo);
+
+  void privacyService;
 
   registerHealthRoutes(app);
   registerStatusRoutes(app, statusService);

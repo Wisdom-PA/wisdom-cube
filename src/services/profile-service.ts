@@ -56,4 +56,32 @@ export class ProfileService {
       throw new NotFoundError(`Profile ${profileId} not found`);
     }
   }
+
+  async isAdult(profileId: string): Promise<boolean> {
+    const profile = await this.get(profileId);
+    return profile.role === 'adult';
+  }
+
+  async canModifySettings(profileId: string): Promise<boolean> {
+    const profile = await this.get(profileId);
+    return profile.role === 'adult';
+  }
+
+  async canAccessInternet(profileId: string): Promise<boolean> {
+    const profile = await this.get(profileId);
+    return profile.internetPolicy !== 'never';
+  }
+
+  async getLinkedAdults(profileId: string): Promise<Profile[]> {
+    const profile = await this.get(profileId);
+    if (profile.role !== 'child' || profile.linkedAdults.length === 0) {
+      return [];
+    }
+    const adults: Profile[] = [];
+    for (const adultId of profile.linkedAdults) {
+      const adult = await this.repo.findById(adultId);
+      if (adult) adults.push(adult);
+    }
+    return adults;
+  }
 }

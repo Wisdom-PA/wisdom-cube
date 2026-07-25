@@ -1,6 +1,6 @@
-import { NotFoundError } from '../errors.ts';
+import { InvalidInputError, NotFoundError } from '../errors.ts';
 import type { DeviceRepository } from '../repositories/device-repo.ts';
-import type { Device, PatchDevice } from '../schemas/device.ts';
+import type { Device, DeviceCapability, PatchDevice } from '../schemas/device.ts';
 
 export class DeviceService {
   private readonly repo: DeviceRepository;
@@ -34,5 +34,28 @@ export class DeviceService {
     if (!deleted) {
       throw new NotFoundError(`Device ${deviceId} not found`);
     }
+  }
+
+  async listByRoom(room: string): Promise<Device[]> {
+    const all = await this.repo.findAll();
+    return all.filter((d) => d.room === room);
+  }
+
+  async listByCapability(capability: DeviceCapability): Promise<Device[]> {
+    const all = await this.repo.findAll();
+    return all.filter((d) => d.capabilities.includes(capability));
+  }
+
+  async listReachable(): Promise<Device[]> {
+    const all = await this.repo.findAll();
+    return all.filter((d) => d.reachable);
+  }
+
+  async requireCapability(deviceId: string, capability: DeviceCapability): Promise<Device> {
+    const device = await this.get(deviceId);
+    if (!device.capabilities.includes(capability)) {
+      throw new InvalidInputError(`Device ${device.displayName} does not support ${capability}`);
+    }
+    return device;
   }
 }
