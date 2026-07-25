@@ -15,6 +15,8 @@ export const routineActionSchema = z.object({
   config: z.record(z.string(), z.unknown()),
 });
 
+export type RoutineAction = z.infer<typeof routineActionSchema>;
+
 export const routineSchema = z.object({
   routineId: z.string(),
   name: z.string(),
@@ -39,3 +41,26 @@ export const createRoutineSchema = z.object({
 });
 
 export type CreateRoutine = z.infer<typeof createRoutineSchema>;
+
+export const runRoutineBodySchema = z.object({
+  profileId: z.string().min(1).optional(),
+});
+
+export type RunRoutineBody = z.infer<typeof runRoutineBodySchema>;
+
+export const routineActionResultSchema = z.object({
+  actionIndex: z.number().int().min(0),
+  result: z.enum(['success', 'failure']),
+  errorMessage: z.string().optional(),
+});
+
+export const routineExecutionResultSchema = z.object({
+  chainId: z.string(),
+  results: z.array(routineActionResultSchema),
+});
+
+export type RoutineExecutionResult = z.infer<typeof routineExecutionResultSchema>;
+
+export const routineHistoryQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});

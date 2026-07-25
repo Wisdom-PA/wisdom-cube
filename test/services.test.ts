@@ -9,9 +9,12 @@ import type { Device } from '../src/schemas/device.ts';
 import type { ChainSummary, LogAction, LogIntent, LogInternetCall } from '../src/schemas/log.ts';
 import { BackupService } from '../src/services/backup-service.ts';
 import { ChatService } from '../src/services/chat-service.ts';
+import { MockCloudLlmClient } from '../src/services/cloud-llm-client.ts';
 import { ConfigService } from '../src/services/config-service.ts';
 import { DeviceService } from '../src/services/device-service.ts';
+import { InternetPermissionService } from '../src/services/internet-permission-service.ts';
 import { LogService } from '../src/services/log-service.ts';
+import { PrivacyService } from '../src/services/privacy-service.ts';
 import { ProfileService } from '../src/services/profile-service.ts';
 import { RoutineService } from '../src/services/routine-service.ts';
 import { StatusService } from '../src/services/status-service.ts';
@@ -384,10 +387,76 @@ describe('BackupService', () => {
 describe('ChatService', () => {
   it('returns stub response with privacy mode', async () => {
     const configRepo = new InMemoryConfigRepository();
-    const service = new ChatService(configRepo);
+    const profileRepo = new InMemoryProfileRepository();
+    const logRepo = new InMemoryLogRepository();
+    const service = new ChatService(
+      new LogService(logRepo),
+      new PrivacyService(configRepo, profileRepo),
+      new ProfileService(profileRepo),
+      new InternetPermissionService(configRepo, profileRepo),
+      new MockCloudLlmClient()
+    );
     const response = await service.send({ text: 'hello', profileId: null, allowInternet: false });
     expect(response.reply).toContain('hello');
     expect(response.privacyMode).toBe('paranoid');
     expect(response.usedInternet).toBe(false);
+  });
+
+  it('uses mock cloud LLM when internet is allowed for an adult', async () => {
+    const configRepo = new InMemoryConfigRepository();
+    const profileRepo = new InMemoryProfileRepository();
+    const logRepo = new InMemoryLogRepository();
+    const profile = await profileRepo.insert({
+      preferredName: 'Adult',
+      role: 'adult',
+      language: 'en',
+      voiceVerbosity: 'normal',
+      internetPolicy: 'ask_every_time',
+      linkedAdults: [],
+    });
+    const service = new ChatService(
+      new LogService(logRepo),
+      new PrivacyService(configRepo, profileRepo),
+      new ProfileService(profileRepo),
+      new InternetPermissionService(configRepo, profileRepo),
+      new MockCloudLlmClient()
+    );
+    const response = await service.send({
+      text: 'search the news',
+      profileId: profile.profileId,
+      allowInternet: true,
+    });
+    expect(response.usedInternet).toBe(true);
+    expect(response.reply).toContain('Online (mock)');
+    expect(response.privacyMode).toBe('normal');
+  });
+
+  it('allows guest internet without switching privacy mode', async () => {
+    const configRepo = new InMemoryConfigRepository();
+    await configRepo.patch({ defaultPrivacyMode: 'normal' });
+    const profileRepo = new InMemoryProfileRepository();
+    const logRepo = new InMemoryLogRepository();
+    const guest = await profileRepo.insert({
+      preferredName: 'Guest',
+      role: 'guest',
+      language: 'en',
+      voiceVerbosity: 'short',
+      internetPolicy: 'ask_every_time',
+      linkedAdults: [],
+    });
+    const service = new ChatService(
+      new LogService(logRepo),
+      new PrivacyService(configRepo, profileRepo),
+      new ProfileService(profileRepo),
+      new InternetPermissionService(configRepo, profileRepo),
+      new MockCloudLlmClient()
+    );
+    const response = await service.send({
+      text: 'online weather please',
+      profileId: guest.profileId,
+      allowInternet: true,
+    });
+    expect(response.usedInternet).toBe(true);
+    expect(response.privacyMode).toBe('normal');
   });
 });

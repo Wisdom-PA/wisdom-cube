@@ -29,6 +29,18 @@ export class DeviceService {
     return updated;
   }
 
+  async applyState(deviceId: string, state: Record<string, unknown>): Promise<Device> {
+    const device = await this.get(deviceId);
+    if (!device.reachable) {
+      throw new InvalidInputError(`Device ${device.displayName} is unreachable`);
+    }
+    const updated = await this.repo.setState(deviceId, state);
+    if (!updated) {
+      throw new NotFoundError(`Device ${deviceId} not found`);
+    }
+    return updated;
+  }
+
   async remove(deviceId: string): Promise<void> {
     const deleted = await this.repo.remove(deviceId);
     if (!deleted) {

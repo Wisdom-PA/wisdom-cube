@@ -2,10 +2,22 @@ import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { errorEnvelopeSchema } from '../errors.ts';
-import { createRoutineSchema, routineSchema } from '../schemas/routine.ts';
+import { logEntrySchema } from '../schemas/log.ts';
+import {
+  createRoutineSchema,
+  routineExecutionResultSchema,
+  routineHistoryQuerySchema,
+  routineSchema,
+  runRoutineBodySchema,
+} from '../schemas/routine.ts';
+import type { RoutineEngineService } from '../services/routine-engine-service.ts';
 import type { RoutineService } from '../services/routine-service.ts';
 
-export function registerRoutineRoutes(app: FastifyInstance, service: RoutineService): void {
+export function registerRoutineRoutes(
+  app: FastifyInstance,
+  service: RoutineService,
+  engine: RoutineEngineService
+): void {
   const routes = app.withTypeProvider<ZodTypeProvider>();
 
   routes.get(
@@ -49,6 +61,48 @@ export function registerRoutineRoutes(app: FastifyInstance, service: RoutineServ
     async (request, reply) => {
       const routine = await service.create(request.body);
       return reply.status(201).send(routine);
+    }
+  );
+
+  routes.post(
+    '/routines/:routineId/run',
+    {
+      preHandler: [app.authenticate],
+      schema: {
+        tags: ['routines'],
+        security: [{ bearerAuth: [] }],
+        params: z.object({ routineId: z.string().min(1) }),
+        body: runRoutineBodySchema.default({}),
+        response: {
+          200: routineExecutionResultSchema,
+          400: errorEnvelopeSchema,
+          401: errorEnvelopeSchema,
+          404: errorEnvelopeSchema,
+        },
+      },
+    },
+    async (request) => engine.execute(request.params.routineId, { profileId: request.body.profileId })
+  );
+
+  routes.get(
+    '/routines/:routineId/history',
+    {
+      preHandler: [app.authenticate],
+      schema: {
+        tags: ['routines'],
+        security: [{ bearerAuth: [] }],
+        params: z.object({ routineId: z.string().min(1) }),
+        querystring: routineHistoryQuerySchema,
+        response: {
+          200: z.array(logEntrySchema),
+          401: errorEnvelopeSchema,
+          404: errorEnvelopeSchema,
+        },
+      },
+    },
+    async (request) => {
+      await service.get(request.params.routineId);
+      return engine.history(request.params.routineId, request.query.limit);
     }
   );
 

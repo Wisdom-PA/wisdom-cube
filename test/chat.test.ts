@@ -22,7 +22,7 @@ describe('POST /chat', () => {
     expect(res.statusCode).toBe(401);
   });
 
-  it('returns a stub response', async () => {
+  it('returns a local stub response without internet', async () => {
     const res = await app.inject({
       method: 'POST',
       url: '/chat',
@@ -48,7 +48,7 @@ describe('POST /chat', () => {
     expect(res.statusCode).toBe(400);
   });
 
-  it('accepts allowInternet flag', async () => {
+  it('blocks allowInternet without a profile', async () => {
     const res = await app.inject({
       method: 'POST',
       url: '/chat',
@@ -56,5 +56,8 @@ describe('POST /chat', () => {
       payload: { text: 'What is the weather?', allowInternet: true },
     });
     expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.usedInternet).toBe(false);
+    expect(body.reply).toContain("couldn't reach the online service");
   });
 });

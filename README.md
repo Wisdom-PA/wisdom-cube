@@ -7,6 +7,12 @@ this Fastify service is the contract-first LAN API shell for development.
 Product docs: sibling **Wisdom** workspace (`Plan.md`, `Tickets.md`,
 `GettingStarted.md`).
 
+## API surface (software)
+
+- Status, config, devices, profiles, routines CRUD, logs, backup stubs
+- **Phase 9**: routine run/history, internet session consent, permission-aware
+  chat with mock cloud LLM, log retention rotate (7 days)
+
 ## Develop
 
 ```sh

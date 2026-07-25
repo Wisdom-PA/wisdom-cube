@@ -55,4 +55,9 @@ export class LogService {
     const updated: ChainSummary = { ...entry.chain, chainEndTs: new Date().toISOString() };
     await this.repo.appendChain(updated);
   }
+
+  async rotate(retentionDays = 7): Promise<number> {
+    const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000).toISOString();
+    return this.repo.purgeOlderThan(cutoff);
+  }
 }
