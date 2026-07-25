@@ -2,6 +2,7 @@ export interface CloudLlmClient {
   complete(input: { prompt: string; chainId: string }): Promise<{ reply: string; endpoint: string }>;
 }
 
+/** In-process stand-in for an online LLM. No vendor API key — this is the v1 default. */
 export class MockCloudLlmClient implements CloudLlmClient {
   async complete(input: { prompt: string; chainId: string }): Promise<{ reply: string; endpoint: string }> {
     void input.chainId;

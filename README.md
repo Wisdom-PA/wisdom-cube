@@ -11,7 +11,8 @@ Product docs: sibling **Wisdom** workspace (`Plan.md`, `Tickets.md`,
 
 - Status, config, devices, profiles, routines CRUD, logs, backup stubs
 - **Phase 9**: routine run/history, internet session consent, permission-aware
-  chat with mock cloud LLM, log retention rotate (7 days)
+  chat with **mock cloud LLM** (default; **no Claude/API key required**), log
+  retention rotate (7 days)
 
 ## Develop
 
