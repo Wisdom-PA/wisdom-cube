@@ -8,6 +8,8 @@ export interface ProfileRepository {
   insert(input: CreateProfile): Promise<Profile>;
   patch(profileId: string, updates: PatchProfile): Promise<Profile | undefined>;
   remove(profileId: string): Promise<boolean>;
+  clear(): Promise<void>;
+  replaceAll(profiles: Profile[]): Promise<void>;
 }
 
 export class InMemoryProfileRepository implements ProfileRepository {
@@ -57,5 +59,16 @@ export class InMemoryProfileRepository implements ProfileRepository {
 
   async remove(profileId: string): Promise<boolean> {
     return this.profiles.delete(profileId);
+  }
+
+  async clear(): Promise<void> {
+    this.profiles.clear();
+  }
+
+  async replaceAll(profiles: Profile[]): Promise<void> {
+    this.profiles.clear();
+    for (const profile of profiles) {
+      this.profiles.set(profile.profileId, { ...profile });
+    }
   }
 }

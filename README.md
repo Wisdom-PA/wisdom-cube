@@ -9,10 +9,13 @@ Product docs: sibling **Wisdom** workspace (`Plan.md`, `Tickets.md`,
 
 ## API surface (software)
 
-- Status, config, devices, profiles, routines CRUD, logs, backup stubs
+- Status, config, devices, profiles, routines CRUD, logs
 - **Phase 9**: routine run/history, internet session consent, permission-aware
   chat with **mock cloud LLM** (default; **no Claude/API key required**), log
   retention rotate (7 days)
+- **Phase 11**: in-memory backup/restore — `POST /backup/trigger`,
+  `GET /backup/:backupId`, dry-run + `factory_reset` /
+  `device_routine_recovery` restore with SHA-256 checksums
 
 ## Develop
 

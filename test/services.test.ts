@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { NotFoundError } from '../src/errors.ts';
+import { InvalidInputError, NotFoundError } from '../src/errors.ts';
 import { InMemoryConfigRepository } from '../src/repositories/config-repo.ts';
 import { InMemoryDeviceRepository } from '../src/repositories/device-repo.ts';
 import { InMemoryLogRepository } from '../src/repositories/log-repo.ts';
@@ -7,7 +7,7 @@ import { InMemoryProfileRepository } from '../src/repositories/profile-repo.ts';
 import { InMemoryRoutineRepository } from '../src/repositories/routine-repo.ts';
 import type { Device } from '../src/schemas/device.ts';
 import type { ChainSummary, LogAction, LogIntent, LogInternetCall } from '../src/schemas/log.ts';
-import { BackupService } from '../src/services/backup-service.ts';
+import { BackupService, computeBackupChecksum, migrateBackup } from '../src/services/backup-service.ts';
 import { ChatService } from '../src/services/chat-service.ts';
 import { MockCloudLlmClient } from '../src/services/cloud-llm-client.ts';
 import { ConfigService } from '../src/services/config-service.ts';
@@ -364,23 +364,248 @@ describe('StatusService', () => {
 });
 
 describe('BackupService', () => {
-  it('returns stub status', async () => {
-    const service = new BackupService();
+  function buildService() {
+    return {
+      configRepo: new InMemoryConfigRepository(),
+      deviceRepo: new InMemoryDeviceRepository(),
+      profileRepo: new InMemoryProfileRepository(),
+      routineRepo: new InMemoryRoutineRepository(),
+      logRepo: new InMemoryLogRepository(),
+      service: null as unknown as BackupService,
+    };
+  }
+
+  function wire() {
+    const deps = buildService();
+    deps.service = new BackupService(
+      deps.configRepo,
+      deps.deviceRepo,
+      deps.profileRepo,
+      deps.routineRepo,
+      deps.logRepo
+    );
+    return deps;
+  }
+
+  function requireId(id: string | null): string {
+    expect(id).toBeTruthy();
+    if (!id) throw new Error('expected backup id');
+    return id;
+  }
+
+  it('returns unavailable status before trigger', async () => {
+    const { service } = wire();
     const status = await service.getStatus();
     expect(status.available).toBe(false);
   });
 
-  it('trigger returns stub', async () => {
-    const service = new BackupService();
+  it('trigger makes backup available and getPayload returns document', async () => {
+    const { service, profileRepo } = wire();
+    await profileRepo.insert({
+      preferredName: 'Ada',
+      role: 'adult',
+      language: 'en',
+      voiceVerbosity: 'normal',
+      internetPolicy: 'ask_every_time',
+      linkedAdults: [],
+    });
+
     const status = await service.triggerBackup();
-    expect(status.available).toBe(false);
+    expect(status.available).toBe(true);
+    const backupId = requireId(status.lastBackupId);
+
+    const doc = await service.getPayload(backupId);
+    expect(doc.manifest.schemaVersion).toBe('1.0');
+    expect(doc.profiles).toHaveLength(1);
+    expect(doc.memories).toEqual([]);
   });
 
-  it('restore returns stub', async () => {
-    const service = new BackupService();
-    const result = await service.restore({ backupId: 'bk', mode: 'factory_reset', dryRun: false });
-    expect(result.success).toBe(false);
-    expect(result.message).toContain('stub');
+  it('dry-run restore succeeds with change summary', async () => {
+    const { service } = wire();
+    const status = await service.triggerBackup();
+    const result = await service.restore({
+      backupId: requireId(status.lastBackupId),
+      mode: 'factory_reset',
+      dryRun: true,
+    });
+    expect(result.success).toBe(true);
+    expect(result.dryRun).toBe(true);
+    expect(result.message).toMatch(/Would replace/i);
+  });
+
+  it('factory_reset restore reloads profiles and devices', async () => {
+    const { service, profileRepo, deviceRepo } = wire();
+    const profile = await profileRepo.insert({
+      preferredName: 'Ada',
+      role: 'adult',
+      language: 'en',
+      voiceVerbosity: 'normal',
+      internetPolicy: 'ask_every_time',
+      linkedAdults: [],
+    });
+    await deviceRepo.upsert({
+      deviceId: 'bulb-1',
+      displayName: 'Lamp',
+      room: 'living',
+      tags: [],
+      capabilities: ['on_off'],
+      reachable: true,
+      state: { on: true },
+    });
+
+    const status = await service.triggerBackup();
+    await profileRepo.clear();
+    await deviceRepo.clear();
+
+    const result = await service.restore({
+      backupId: requireId(status.lastBackupId),
+      mode: 'factory_reset',
+      dryRun: false,
+    });
+    expect(result.success).toBe(true);
+
+    const profiles = await profileRepo.findAll();
+    expect(profiles).toHaveLength(1);
+    expect(profiles[0]?.profileId).toBe(profile.profileId);
+
+    const devices = await deviceRepo.findAll();
+    expect(devices).toHaveLength(1);
+    expect(devices[0]?.deviceId).toBe('bulb-1');
+    expect(devices[0]?.reachable).toBe(false);
+    expect(devices[0]?.state).toEqual({});
+  });
+
+  it('device_routine_recovery merges devices and routines', async () => {
+    const { service, deviceRepo, routineRepo, profileRepo } = wire();
+    const profile = await profileRepo.insert({
+      preferredName: 'Ada',
+      role: 'adult',
+      language: 'en',
+      voiceVerbosity: 'normal',
+      internetPolicy: 'ask_every_time',
+      linkedAdults: [],
+    });
+    await deviceRepo.upsert({
+      deviceId: 'bulb-1',
+      displayName: 'Old name',
+      room: 'kitchen',
+      tags: ['a'],
+      capabilities: ['on_off'],
+      reachable: true,
+      state: { on: true },
+    });
+    const routine = await routineRepo.insert({
+      name: 'Morning',
+      ownerProfileId: profile.profileId,
+      enabled: true,
+      triggers: [{ type: 'voice_phrase', config: { phrase: 'good morning' } }],
+      conditions: [],
+      actions: [{ type: 'device_state', config: { deviceId: 'bulb-1', on: true } }],
+    });
+
+    const status = await service.triggerBackup();
+
+    await deviceRepo.upsert({
+      deviceId: 'bulb-1',
+      displayName: 'Old name',
+      room: 'kitchen',
+      tags: ['a'],
+      capabilities: ['on_off'],
+      reachable: true,
+      state: { on: false },
+    });
+    await deviceRepo.upsert({
+      deviceId: 'bulb-2',
+      displayName: 'Keep me',
+      room: 'hall',
+      tags: [],
+      capabilities: ['on_off'],
+      reachable: true,
+      state: {},
+    });
+
+    const result = await service.restore({
+      backupId: requireId(status.lastBackupId),
+      mode: 'device_routine_recovery',
+      dryRun: false,
+    });
+    expect(result.success).toBe(true);
+
+    const devices = await deviceRepo.findAll();
+    expect(devices.map((d) => d.deviceId).sort()).toEqual(['bulb-1', 'bulb-2']);
+    const bulb1 = devices.find((d) => d.deviceId === 'bulb-1');
+    expect(bulb1?.displayName).toBe('Old name');
+    expect(bulb1?.state).toEqual({ on: false });
+
+    const routines = await routineRepo.findAll();
+    expect(routines.some((r) => r.routineId === routine.routineId)).toBe(true);
+  });
+
+  it('device_routine_recovery inserts missing devices from backup', async () => {
+    const { service, deviceRepo } = wire();
+    await deviceRepo.upsert({
+      deviceId: 'bulb-new',
+      displayName: 'New lamp',
+      room: null,
+      tags: [],
+      capabilities: ['on_off'],
+      reachable: true,
+      state: {},
+    });
+    const status = await service.triggerBackup();
+    await deviceRepo.clear();
+
+    await service.restore({
+      backupId: requireId(status.lastBackupId),
+      mode: 'device_routine_recovery',
+      dryRun: false,
+    });
+
+    const devices = await deviceRepo.findAll();
+    expect(devices).toHaveLength(1);
+    expect(devices[0]?.deviceId).toBe('bulb-new');
+  });
+
+  it('putBackup stores a verified document', async () => {
+    const { service } = wire();
+    const status = await service.triggerBackup();
+    const doc = await service.getPayload(requireId(status.lastBackupId));
+    const other = wire().service;
+    other.putBackup(doc);
+    const copied = await other.getPayload(doc.manifest.backupId);
+    expect(copied.manifest.checksum).toBe(doc.manifest.checksum);
+  });
+
+  it('rejects bad checksum on restore', async () => {
+    const { service } = wire();
+    const status = await service.triggerBackup();
+    const backupId = requireId(status.lastBackupId);
+    const doc = await service.getPayload(backupId);
+    service.putBackupUnchecked({
+      ...doc,
+      manifest: { ...doc.manifest, checksum: '0'.repeat(64) },
+    });
+
+    await expect(service.restore({ backupId, mode: 'factory_reset', dryRun: false })).rejects.toThrow(/checksum/i);
+  });
+
+  it('rejects unknown backup id with NotFoundError', async () => {
+    const { service } = wire();
+    await expect(service.getPayload('missing')).rejects.toBeInstanceOf(NotFoundError);
+    await expect(service.restore({ backupId: 'missing', mode: 'factory_reset', dryRun: false })).rejects.toBeInstanceOf(
+      NotFoundError
+    );
+  });
+
+  it('migrateBackup rejects unknown major versions', async () => {
+    const { service } = wire();
+    const status = await service.triggerBackup();
+    const doc = await service.getPayload(requireId(status.lastBackupId));
+    doc.manifest.schemaVersion = '2.0';
+    const { manifest: _manifest, ...body } = doc;
+    doc.manifest.checksum = computeBackupChecksum(body);
+    expect(() => migrateBackup(doc)).toThrow(InvalidInputError);
+    expect(() => migrateBackup(doc)).toThrow(/Unsupported backup schema/);
   });
 });
 

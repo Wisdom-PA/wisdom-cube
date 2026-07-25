@@ -8,6 +8,9 @@ export interface LogRepository {
   query(params: LogQuery): Promise<LogEntry[]>;
   getChain(chainId: string): Promise<LogEntry | undefined>;
   purgeOlderThan(isoCutoff: string): Promise<number>;
+  listIntents(): Promise<LogIntent[]>;
+  listActions(): Promise<LogAction[]>;
+  listInternetCalls(): Promise<LogInternetCall[]>;
 }
 
 export class InMemoryLogRepository implements LogRepository {
@@ -106,5 +109,17 @@ export class InMemoryLogRepository implements LogRepository {
     }
 
     return toRemove.length;
+  }
+
+  async listIntents(): Promise<LogIntent[]> {
+    return this.intents.map((intent) => ({ ...intent }));
+  }
+
+  async listActions(): Promise<LogAction[]> {
+    return this.actions.map((action) => ({ ...action }));
+  }
+
+  async listInternetCalls(): Promise<LogInternetCall[]> {
+    return this.internetCalls.map((call) => ({ ...call }));
   }
 }

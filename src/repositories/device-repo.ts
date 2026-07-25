@@ -7,6 +7,8 @@ export interface DeviceRepository {
   patch(deviceId: string, updates: PatchDevice): Promise<Device | undefined>;
   setState(deviceId: string, statePatch: Record<string, unknown>): Promise<Device | undefined>;
   remove(deviceId: string): Promise<boolean>;
+  clear(): Promise<void>;
+  replaceAll(devices: Device[]): Promise<void>;
 }
 
 export class InMemoryDeviceRepository implements DeviceRepository {
@@ -51,5 +53,16 @@ export class InMemoryDeviceRepository implements DeviceRepository {
 
   async remove(deviceId: string): Promise<boolean> {
     return this.devices.delete(deviceId);
+  }
+
+  async clear(): Promise<void> {
+    this.devices.clear();
+  }
+
+  async replaceAll(devices: Device[]): Promise<void> {
+    this.devices.clear();
+    for (const device of devices) {
+      this.devices.set(device.deviceId, { ...device });
+    }
   }
 }
